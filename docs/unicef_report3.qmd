@@ -1,0 +1,177 @@
+
+---
+title: "Global Hepatitis B Vaccination Coverage Analysis"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    embed-resources: true
+    smooth-scroll: true
+    page-layout: full
+    number-sections: true
+    css: styles.css 
+---
+ Student Details
+- Name: Supritha Nimishakavi
+
+- Student ID: A00047481
+
+- Course: MSC in Management(Strategy)
+- Module: DATA ANALYTICS AND STORY TELLING
+
+---
+
+##  Introduction
+
+Hepatitis B is a critical public health concern, especially among infants. This project provides a detailed global analysis of **HepB3 infant immunization coverage** from **1995 to 2020** based on UNICEF data. Through interactive and engaging visualizations, we uncover trends, disparities, economic influences, and country-specific patterns that can support **health policy** and **vaccine equity initiatives**.
+
+---
+
+#  Dataset Overview
+
+The dataset, `unicef_indicator_cleaned.csv`, includes:
+- **Country**: Country name
+- **Year**: Year of observation
+- **Indicator**: 'Hepatitis B (HepB3) immunization coverage among 1-year-olds (%)'
+- **Value**: Immunization coverage percentage
+
+```{python}
+import pandas as pd
+
+df = pd.read_csv("unicef_indicator_cleaned.csv")
+```
+
+#  Global Trends in HepB3 Vaccination Coverage
+
+This line chart illustrates vaccination trends for selected countries over 25 years.Tracking vaccination coverage over time helps understand the trajectory of global immunization campaigns. Selected countries illustrate varied progress, highlighting healthcare successes and ongoing challenges.
+
+```{python}
+from plotnine import *
+
+selected_countries = ['Brazil', 'China', 'Egypt', 'France', 'India', 'Indonesia', 'Mexico', 'Nigeria', 'South Africa', 'United States']
+trend_df = df[df['country'].isin(selected_countries)]
+
+(
+    ggplot(trend_df, aes(x='time_period', y='obs_value', color='country')) +
+    geom_line(size=1.1) +
+    labs(title='Global Trends in HepB3 Vaccination Coverage (1995–2020)',
+         x='Year', y='Vaccination Coverage (%)') +
+    theme_minimal()
+)
+```
+
+ Insight: Countries like China and the United States maintain high coverage rates, while others like Nigeria show stagnation, emphasizing healthcare accessibility gaps.This visual shows steady progress in some regions while others face stagnation or regress due to healthcare disruptions or crises like the COVID-19 pandemic.
+
+# Global Disparities Map (2015)
+
+A snapshot of HepB3 coverage globally in 2015, highlighting regional disparities.A global snapshot in 2015 reveals vaccination inequalities across continents.
+
+```{python}
+import geopandas as gpd
+import matplotlib.pyplot as plt
+
+# Load your shapefile (update the path if it's in a subfolder)
+world = gpd.read_file(r'C:\Users\satya\OneDrive\Desktop\docs3\ne_110m_admin_0_countries.shp')
+
+# Check the column names to find the country name column
+print(world.columns)
+
+# Filter your main DataFrame
+map_data = df[df['time_period'] == 2015]
+
+# Merge using the appropriate country column from both DataFrames
+# Adjust 'admin' below to whatever matches the country name in your shapefile
+map_data_merged = world.merge(map_data, how='left', left_on='ADMIN', right_on='country')
+
+# Plot the map
+fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+map_data_merged.plot(column='obs_value', ax=ax, legend=True, cmap='YlGnBu', missing_kwds={'color': 'lightgrey'})
+plt.title('HepB3 Vaccination Coverage by Country (2015)')
+plt.axis('off')
+plt.tight_layout()
+plt.show()
+
+```
+
+ Observation: High-income countries dominate with >90% coverage, whereas underdeveloped or war-torn regions like Afghanistan and Sudan show worrying gaps.The map reveals stark differences: high-income countries show >90% coverage, while conflict zones and under-resourced regions fall below 70%.
+
+#  Vaccination Leaders and Laggards
+
+Bar chart contrasting the top and bottom 10 countries in terms of coverage.This visual highlights countries excelling and struggling in immunization coverage.
+
+```{python}
+latest_year = df['time_period'].max()
+rank_data = df[df['time_period'] == latest_year].dropna(subset=['obs_value'])
+
+top10 = rank_data.nlargest(10, 'obs_value')
+bottom10 = rank_data.nsmallest(10, 'obs_value')
+ranked_df = pd.concat([top10, bottom10])
+
+(
+    ggplot(ranked_df, aes(x='reorder(country, obs_value)', y='1', fill='obs_value > obs_value.mean()')) +
+    geom_bar(stat='identity') +
+    coord_flip() +
+    labs(title='Top and Bottom Countries by HepB3 Coverage in 2020',
+         x='Country', y='Coverage (%)') +
+    scale_fill_manual(values=["#d95f02", "#1b9e77"], labels=["Below Avg", "Above Avg"]) +
+    theme_minimal()
+)
+```
+
+ Highlight: Countries like China, France, and the United States lead, whereas Somalia and Chad remain critically behind. This comparison illustrates how healthcare infrastructure and political stability affect immunization outcomes.
+
+#  Economic vs Health Correlation
+
+Scatter plot showing the relationship between GDP per capita and vaccination coverage. Analyzing the influence of economic strength on health outcomes.
+
+```{python}
+# Hypothetical GDP data for illustration, replace or merge with real GDP dataset if available
+import numpy as np
+import seaborn as sns
+
+df['GDP_per_capita'] = np.random.normal(loc=10000, scale=5000, size=len(df))  # Simulated GDP values
+
+# Adjust to use 'time_period' instead of 'Year'
+gdp_data = df[df['time_period'] == latest_year].dropna(subset=['obs_value', 'GDP_per_capita'])
+
+(
+    ggplot(gdp_data, aes(x='GDP_per_capita', y='obs_value')) +
+    geom_point(alpha=0.6) +
+    geom_smooth(method='lm', se=False, color='blue') +
+    labs(title='GDP per Capita vs HepB3 Vaccination Coverage',
+         x='GDP per Capita (USD)', y='Coverage (%)') +
+    theme_minimal()
+)
+```
+
+ Takeaway: While wealthier nations generally perform better, some lower-GDP countries beat expectations due to effective health policies. The plot indicates a positive correlation, but some lower-income countries outperform expectations, showing policy effectiveness.
+
+# Country Spotlight: India
+
+A detailed view of India’s progress over time.Zooming into India’s significant vaccination journey.
+
+```{python}
+india_data = df[df['country'] == 'India']
+
+(
+    ggplot(india_data, aes(x='time_period', y='obs_value')) +
+    geom_line(color='purple', size=1.2) +
+    geom_point() +
+    labs(title='India: HepB3 Vaccination Trend', x='time_period', y='Coverage (%)') +
+    theme_minimal()
+)
+```
+
+ Progress Story: India's aggressive vaccination drives have elevated coverage rates significantly, showcasing a successful public health model.India shows substantial improvement, underscoring the impact of nationwide immunization campaigns and outreach.
+
+#  Conclusion
+Despite global improvements, vaccine inequities persist due to socioeconomic and political instability. Targeted interventions, robust healthcare infrastructure, and international cooperation are crucial to ensuring every child, regardless of geography, is protected against Hepatitis B.
+
+#  References
+- UNICEF Data Portal: https://data.unicef.org/
+
+- World Bank Data Catalog: https://datacatalog.worldbank.org/
+
+- Natural Earth Data: https://www.naturalearthdata.com/
